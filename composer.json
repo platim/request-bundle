@@ -1,0 +1,48 @@
+{
+  "name": "platim/request-bundle",
+  "description": "Request Bundle",
+  "type": "symfony-bundle",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Andrey Borodulin",
+      "email": "borodulin@gmail.com"
+    }
+  ],
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "version": "1.0.0",
+  "require": {
+    "php": ">=8.1",
+    "ext-json": "*",
+    "symfony/http-kernel": "^5.4",
+    "symfony/property-access": "^5.4",
+    "symfony/property-info": "^5.4",
+    "symfony/serializer": "^5.4",
+    "symfony/http-foundation": "^5.4",
+    "symfony/yaml": "^5.4",
+    "symfony/validator": "^5.4",
+    "symfony/form": "^5.4"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-latest",
+    "phpunit/phpunit": "^9.5",
+    "symfony/framework-bundle": "^5.4",
+    "friendsofphp/php-cs-fixer": "^3.0",
+    "phpstan/phpstan": "^1.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Platim\\RequestBundle\\": "src/"
+    }
+  },
+  "conflict": {
+    "symfony/symfony": "*"
+  },
+  "extra": {
+    "symfony": {
+      "allow-contrib": false,
+      "require": "^5.4"
+    }
+  }
+}
