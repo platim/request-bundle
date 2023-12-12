@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Platim\RequestBundle\ArgumentResolver;
+namespace Platim\RequestBundle\ValueResolver;
 
 use Platim\RequestBundle\Attribute\Request as RequestAttribute;
 use Platim\RequestBundle\Exception\ValidationException;
@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class RequestArgumentResolver implements ValueResolverInterface
+class RequestValuerResolver implements ValueResolverInterface
 {
     public function __construct(
         private readonly ValidatorInterface $validator,

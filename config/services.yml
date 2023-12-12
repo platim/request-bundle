@@ -3,6 +3,6 @@ services:
     autowire: true
 
 
-  Platim\RequestBundle\ArgumentResolver\RequestArgumentResolver:
+  Platim\RequestBundle\ValueResolver\RequestValuerResolver:
     tags:
       - { name: controller.argument_value_resolver, priority: 50 }
