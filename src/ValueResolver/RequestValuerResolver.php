@@ -34,9 +34,11 @@ class RequestValuerResolver implements ValueResolverInterface
         $reflection = new \ReflectionClass($type);
 
         if (
-            $reflection->implementsInterface(RequestInterface::class)
-            || \count($reflection->getAttributes(RequestAttribute::class)) > 0
-            || \count($argument->getAttributes(RequestAttribute::class)) > 0
+            !(
+                $reflection->implementsInterface(RequestInterface::class)
+                || \count($reflection->getAttributes(RequestAttribute::class)) > 0
+                || \count($argument->getAttributes(RequestAttribute::class)) > 0
+            )
         ) {
             return [];
         }
