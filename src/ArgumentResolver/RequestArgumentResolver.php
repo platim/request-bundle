@@ -10,12 +10,12 @@ use Platim\RequestBundle\Request\RequestInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;
+use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class RequestArgumentResolver implements ArgumentValueResolverInterface
+class RequestArgumentResolver implements ValueResolverInterface
 {
     public function __construct(
         private readonly ValidatorInterface $validator,
@@ -24,29 +24,30 @@ class RequestArgumentResolver implements ArgumentValueResolverInterface
     ) {
     }
 
-    public function supports(Request $request, ArgumentMetadata $argument): bool
+    public function resolve(Request $request, ArgumentMetadata $argument): iterable
     {
         $type = $argument->getType();
         if (!($type && class_exists($type))) {
-            return false;
+            return [];
         }
 
         $reflection = new \ReflectionClass($type);
 
-        return $reflection->implementsInterface(RequestInterface::class)
+        if (
+            $reflection->implementsInterface(RequestInterface::class)
             || \count($reflection->getAttributes(RequestAttribute::class)) > 0
-            || \count($argument->getAttributes(RequestAttribute::class)) > 0;
-    }
+            || \count($argument->getAttributes(RequestAttribute::class)) > 0
+        ) {
+            return [];
+        }
 
-    public function resolve(Request $request, ArgumentMetadata $argument): iterable
-    {
         $hasBody = \in_array(
             $request->getMethod(),
             [Request::METHOD_POST, Request::METHOD_PUT, Request::METHOD_PATCH],
             true
         );
         $normalData = [];
-        $format = $request->getContentType();
+        $format = $request->getContentTypeFormat();
         if ($hasBody) {
             if ('json' === $format) {
                 $normalData = $request->toArray();
