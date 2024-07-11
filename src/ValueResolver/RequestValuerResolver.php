@@ -12,14 +12,24 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
+use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
+use Symfony\Component\Serializer\Exception\PartialDenormalizationException;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class RequestValuerResolver implements ValueResolverInterface
 {
+    private const CONTEXT_DENORMALIZE = [
+        'disable_type_enforcement' => true,
+        'collect_denormalization_errors' => true,
+    ];
+
     public function __construct(
         private readonly ValidatorInterface $validator,
-        private readonly SerializerInterface $serializer,
+        private readonly SerializerInterface&DenormalizerInterface $serializer,
         private readonly FormFactoryInterface $formFactory,
     ) {
     }
@@ -81,20 +91,47 @@ class RequestValuerResolver implements ValueResolverInterface
                 throw new ValidationException($errors);
             }
         } else {
-            $instance = $this->serializer->denormalize(
-                $normalData,
-                $argument->getType(),
-                'json' === $format ? 'json' : 'csv'
-            );
-            $violations = [];
-            $errors = $this->validator->validate($instance, null, ['Default', $request->getMethod()]);
-            if ($errors->count()) {
-                foreach ($errors as $error) {
-                    $this->putErrorAtPropertyPath($violations, $error->getPropertyPath(), $error->getMessage());
+            $violations = new ConstraintViolationList();
+            try {
+                $instance = $this->serializer->denormalize(
+                    $normalData,
+                    $argument->getType(),
+                    'json' === $format ? 'json' : 'csv',
+                    self::CONTEXT_DENORMALIZE
+                );
+            } catch (PartialDenormalizationException $e) {
+                /** @var NotNormalizableValueException $error */
+                foreach ($e->getErrors() as $error) {
+                    $parameters = [];
+                    $template = 'This value was of an unexpected type.';
+                    if ($expectedTypes = $error->getExpectedTypes()) {
+                        $template = 'This value should be of type {{ type }}.';
+                        $parameters['{{ type }}'] = implode('|', $expectedTypes);
+                    }
+                    if ($error->canUseMessageForUser()) {
+                        $parameters['hint'] = $error->getMessage();
+                    }
+
+                    if ($error->canUseMessageForUser()) {
+                        $message = $error->getMessage();
+                    } else {
+                        $message = sprintf('The type must be one of "%s" ("%s" given).', implode(', ', $expectedTypes), $error->getCurrentType());
+                    }
+                    $violations->add(new ConstraintViolation($message, $template, $parameters, null, $error->getPath(), null));
+                }
+                $instance = $e->getData();
+            }
+            if (null !== $instance && !\count($violations)) {
+                $violations->addAll($this->validator->validate($instance, null, ['Default', $request->getMethod()]));
+            }
+            $violationsArray = [];
+            if ($violations->count()) {
+                foreach ($violations as $violation) {
+                    $this->putErrorAtPropertyPath($violationsArray, $violation->getPropertyPath(), $violation->getMessage());
                 }
             }
-            if (\count($violations)) {
-                throw new ValidationException($violations);
+            if (\count($violationsArray)) {
+                throw new ValidationException($violationsArray);
             }
 
             yield $instance;
